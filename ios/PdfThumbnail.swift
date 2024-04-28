@@ -20,9 +20,11 @@ class PdfThumbnail: NSObject {
         return "\(prefix)-thumbnail-\(page)-\(random).jpg"
     }
 
-    func generatePage(pdfPage: PDFPage, filePath: String, page: Int, quality: Int) -> Dictionary<String, Any>? {
+    func generatePage(pdfPage: PDFPage, filePath: String, page: Int, quality: Int, minWidth: Int ) -> Dictionary<String, Any>? {
         let pageRect = pdfPage.bounds(for: .mediaBox)
-        let image = pdfPage.thumbnail(of: CGSize(width: pageRect.width, height: pageRect.height), for: .mediaBox)
+        let width = max(pageRect.width, CGFloat(minWidth))
+        let height = width/pageRect.width * pageRect.height
+        let image = pdfPage.thumbnail(of: CGSize(width: width, height: height), for: .mediaBox)
         let outputFile = getCachesDirectory().appendingPathComponent(getOutputFilename(filePath: filePath, page: page))
         guard let data = image.jpegData(compressionQuality: CGFloat(quality) / 100) else {
             return nil
@@ -31,8 +33,8 @@ class PdfThumbnail: NSObject {
             try data.write(to: outputFile)
             return [
                 "uri": outputFile.absoluteString,
-                "width": Int(pageRect.width),
-                "height": Int(pageRect.height),
+                "width": width,
+                "height": height,
             ]
         } catch {
             return nil
@@ -40,8 +42,8 @@ class PdfThumbnail: NSObject {
     }
     
     @available(iOS 11.0, *)
-    @objc(generate:withPage:withQuality:withResolver:withRejecter:)
-    func generate(filePath: String, page: Int, quality: Int, resolve:RCTPromiseResolveBlock, reject:RCTPromiseRejectBlock) -> Void {
+    @objc(generate:withPage:withQuality:withMinWidth:withResolver:withRejecter:)
+    func generate(filePath: String, page: Int, quality: Int, minWidth: Int, resolve:RCTPromiseResolveBlock, reject:RCTPromiseRejectBlock) -> Void {
         guard let fileUrl = URL(string: filePath) else {
             reject("FILE_NOT_FOUND", "File \(filePath) not found", nil)
             return
@@ -55,16 +57,16 @@ class PdfThumbnail: NSObject {
             return
         }
 
-        if let pageResult = generatePage(pdfPage: pdfPage, filePath: filePath, page: page, quality: quality) {
+        if let pageResult = generatePage(pdfPage: pdfPage, filePath: filePath, page: page, quality: quality, minWidth: minWidth) {
             resolve(pageResult)
         } else {
             reject("INTERNAL_ERROR", "Cannot write image data", nil)
         }
     }
-
+    
     @available(iOS 11.0, *)
-    @objc(generateAllPages:withQuality:withResolver:withRejecter:)
-    func generateAllPages(filePath: String, quality: Int, resolve:RCTPromiseResolveBlock, reject:RCTPromiseRejectBlock) -> Void {
+    @objc(generateAllPages:withQuality:withMinWidth:withResolver:withRejecter:)
+    func generateAllPages(filePath: String, quality: Int, minWidth: Int, resolve:RCTPromiseResolveBlock, reject:RCTPromiseRejectBlock) -> Void {
         guard let fileUrl = URL(string: filePath) else {
             reject("FILE_NOT_FOUND", "File \(filePath) not found", nil)
             return
@@ -80,7 +82,7 @@ class PdfThumbnail: NSObject {
                 reject("INVALID_PAGE", "Page number \(page) is invalid, file has \(pdfDocument.pageCount) pages", nil)
                 return
             }
-            if let pageResult = generatePage(pdfPage: pdfPage, filePath: filePath, page: page, quality: quality) {
+            if let pageResult = generatePage(pdfPage: pdfPage, filePath: filePath, page: page, quality: quality, minWidth: minWidth) {
                 result.append(pageResult)
             } else {
                 reject("INTERNAL_ERROR", "Cannot write image data", nil)
@@ -89,4 +91,5 @@ class PdfThumbnail: NSObject {
         }
         resolve(result)
     }
+    
 }

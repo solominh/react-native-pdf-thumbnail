@@ -10,11 +10,13 @@ type NativeType = {
   generate(
     filePath: string,
     page: number,
-    quality: number
+    quality: number,
+    minWidth: number
   ): Promise<ThumbnailResult>;
   generateAllPages(
     filePath: string,
-    quality: number
+    quality: number,
+    minWidth: number
   ): Promise<ThumbnailResult[]>;
 };
 
@@ -48,22 +50,26 @@ export default class PdfThumbnail {
   static async generate(
     filePath: string,
     page: number,
-    quality?: number
+    quality: number,
+    minWidth: number
   ): Promise<ThumbnailResult> {
     return PdfThumbnailNativeModule.generate(
       filePath,
       page,
-      sanitizeQuality(quality)
+      sanitizeQuality(quality),
+      minWidth
     );
   }
 
   static async generateAllPages(
     filePath: string,
-    quality?: number
+    quality: number,
+    minWidth: number
   ): Promise<ThumbnailResult[]> {
     return PdfThumbnailNativeModule.generateAllPages(
       filePath,
-      sanitizeQuality(quality)
+      sanitizeQuality(quality),
+      minWidth
     );
   }
 }

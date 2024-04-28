@@ -17,10 +17,13 @@ export default function App() {
       const { uri } = await DocumentPicker.pickSingle({
         type: [DocumentPicker.types.pdf],
       });
-      const result = await PdfThumbnail.generate(uri, 0, 100);
+      const minWidth = 2000;
+      const result = await PdfThumbnail.generate(uri, 0, 80, minWidth);
+      console.log('🚀 ~ onPress ~ result:', result);
       setThumbnail(result);
       setError(undefined);
     } catch (err) {
+      console.log('🚀 ~ onPress ~ err:', err);
       if (DocumentPicker.isCancel(err)) {
         // User cancelled the picker, exit any dialogs or menus and move on
       } else {

@@ -26,7 +26,7 @@ class PdfThumbnailModule(reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
-  fun generate(filePath: String, page: Int, quality: Int, promise: Promise) {
+  fun generate(filePath: String, page: Int, quality: Int, minWidth: Int, promise: Promise) {
     var parcelFileDescriptor: ParcelFileDescriptor? = null
     var pdfRenderer: PdfRenderer? = null
     try {
@@ -42,7 +42,7 @@ class PdfThumbnailModule(reactContext: ReactApplicationContext) :
         return
       }
 
-      val result = renderPage(pdfRenderer, page, filePath, quality)
+      val result = renderPage(pdfRenderer, page, filePath, quality, minWidth)
       promise.resolve(result)
     } catch (ex: IOException) {
       promise.reject("INTERNAL_ERROR", ex)
@@ -53,7 +53,7 @@ class PdfThumbnailModule(reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
-  fun generateAllPages(filePath: String, quality: Int, promise: Promise) {
+  fun generateAllPages(filePath: String, quality: Int, minWidth: Int, promise: Promise) {
     var parcelFileDescriptor: ParcelFileDescriptor? = null
     var pdfRenderer: PdfRenderer? = null
     try {
@@ -66,7 +66,7 @@ class PdfThumbnailModule(reactContext: ReactApplicationContext) :
       pdfRenderer = PdfRenderer(parcelFileDescriptor)
       val result = WritableNativeArray()
       for (page in 0 until pdfRenderer.pageCount) {
-        result.pushMap(renderPage(pdfRenderer, page, filePath, quality))
+        result.pushMap(renderPage(pdfRenderer, page, filePath, quality, minWidth))
       }
       promise.resolve(result)
     } catch (ex: IOException) {
@@ -88,10 +88,10 @@ class PdfThumbnailModule(reactContext: ReactApplicationContext) :
     return null
   }
 
-  private fun renderPage(pdfRenderer: PdfRenderer, page: Int, filePath: String, quality: Int): WritableNativeMap {
+  private fun renderPage(pdfRenderer: PdfRenderer, page: Int, filePath: String, quality: Int, minWidth: Int): WritableNativeMap {
     val currentPage = pdfRenderer.openPage(page)
-    val width = currentPage.width
-    val height = currentPage.height
+    val width = maxOf(currentPage.width, minWidth)
+    val height = (minWidth.toFloat()/currentPage.width * currentPage.height).toInt()
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     bitmap.eraseColor(Color.WHITE)
     currentPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
